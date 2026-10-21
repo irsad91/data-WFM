@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Ringkasan</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: Arial, sans-serif;
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 { margin: 0 0 6px; }
+    .muted, #status { color: #64748b; }
+
+    button {
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 8px;
+      color: white;
+      background: #2563eb;
+      cursor: pointer;
+    }
+
+    button:hover { background: #1d4ed8; }
+
+    #cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      padding: 22px;
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 4px 16px #0f172a0a;
+    }
+
+    .card p {
+      margin: 0 0 12px;
+      color: #64748b;
+    }
+
+    .card strong {
+      font-size: 28px;
+    }
+
+    #status { margin-top: 18px; }
+
+    @media (max-width: 750px) {
+      body { padding: 20px 14px; }
+      #cards { grid-template-columns: repeat(2, 1fr); }
+      header { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 420px) {
+      #cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Dashboard Ringkasan</h1>
+        <div class="muted">Data diambil dari Google Sheets</div>
+      </div>
+      <button id="refreshButton">Muat ulang data</button>
+    </header>
+
+    <section id="cards"></section>
+    <p id="status">Memuat data…</p>
+  </main>
+
+  <script>
+    // Ganti teks di bawah ini dengan URL CSV dari Google Sheets.
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/1fNVV1nv-TvPOsuzbnTnnAZKEdN37DzKYMpz_E7lY0WE/edit?gid=1959687228#gid=1959687228";
+
+    async function loadDashboard() {
+      const status = document.getElementById("status");
+      const cards = document.getElementById("cards");
+
+      status.textContent = "Memuat data…";
+      cards.replaceChildren();
+
+      try {
+        const url = new URL(CSV_URL);
+        url.searchParams.set("_refresh", Date.now());
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error("CSV tidak bisa diambil.");
+        }
+
+        const csv = (await response.text()).replace(/^\uFEFF/, "");
+        const lines = csv.trim().split(/\r?\n/);
+
+        if (lines.length < 2) {
+          throw new Error("Data CSV kosong atau formatnya tidak sesuai.");
+        }
+
+        const headers = lines.shift().split(",").map(x => x.trim());
+
+        const records = lines.map(line => {
+          const cells = line.split(",");
+          const record = {};
+
+          headers.forEach((header, index) => {
+            record[header] = (cells[index] || "").trim();
+          });
+
+          return record;
+        });
+
+        records.forEach(record => {
+          const card = document.createElement("article");
+          card.className = "card";
+
+          const label = document.createElement("p");
+          label.textContent = record.label || record.key || "Data";
+
+          const value = document.createElement("strong");
+          const number = Number(record.value);
+
+          if (record.key === "revenue" && Number.isFinite(number)) {
+            value.textContent = new Intl.NumberFormat("id-ID", {
+              style: "currency",
+              currency: "IDR",
+              maximumFractionDigits: 0
+            }).format(number);
+          } else if (Number.isFinite(number)) {
+            value.textContent = new Intl.NumberFormat("id-ID").format(number);
+          } else {
+            value.textContent = record.value || "—";
+          }
+
+          card.append(label, value);
+          cards.appendChild(card);
+        });
+
+        status.textContent =
+          "Data dimuat pada " + new Date().toLocaleString("id-ID");
+      } catch (error) {
+        status.textContent =
+          "Data belum berhasil dimuat. Periksa URL CSV dan pengaturan publikasi Sheet.";
+        console.error(error);
+      }
+    }
+
+    document
+      .getElementById("refreshButton")
+      .addEventListener("click", loadDashboard);
+
+    loadDashboard();
+  </script>
+</body>
+</html>
