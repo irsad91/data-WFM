@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Ringkasan</title>
+  <title>Dashboard Branch</title>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
-      padding: 32px;
+      padding: 28px;
       font-family: Arial, sans-serif;
       color: #1e293b;
       background: #f1f5f9;
     }
 
     main {
-      max-width: 1100px;
+      max-width: 1600px;
       margin: 0 auto;
     }
 
@@ -26,55 +28,132 @@
       justify-content: space-between;
       align-items: center;
       gap: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
-    h1 { margin: 0 0 6px; }
-    .muted, #status { color: #64748b; }
+    h1 {
+      margin: 0 0 6px;
+    }
+
+    .muted,
+    #status {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    button,
+    select,
+    input {
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+    }
 
     button {
-      padding: 10px 16px;
-      border: 0;
-      border-radius: 8px;
       color: white;
       background: #2563eb;
+      border-color: #2563eb;
       cursor: pointer;
     }
 
-    button:hover { background: #1d4ed8; }
-
-    #cards {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+    button:hover {
+      background: #1d4ed8;
     }
 
-    .card {
-      padding: 22px;
-      border-radius: 14px;
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(150px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .summary-card {
+      padding: 18px;
+      border-radius: 12px;
       background: white;
       box-shadow: 0 4px 16px #0f172a0a;
     }
 
-    .card p {
-      margin: 0 0 12px;
+    .summary-card span {
+      display: block;
+      margin-bottom: 8px;
       color: #64748b;
+      font-size: 14px;
     }
 
-    .card strong {
-      font-size: 28px;
+    .summary-card strong {
+      font-size: 24px;
     }
 
-    #status { margin-top: 18px; }
-
-    @media (max-width: 750px) {
-      body { padding: 20px 14px; }
-      #cards { grid-template-columns: repeat(2, 1fr); }
-      header { align-items: flex-start; flex-direction: column; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 12px;
     }
 
-    @media (max-width: 420px) {
-      #cards { grid-template-columns: 1fr; }
+    select {
+      min-width: 170px;
+    }
+
+    input {
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .table-container {
+      max-height: 70vh;
+      overflow: auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: white;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1300px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      white-space: nowrap;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #e2e8f0;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    @media (max-width: 650px) {
+      body {
+        padding: 18px 12px;
+      }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+
+      input {
+        min-width: 100%;
+      }
     }
   </style>
 </head>
@@ -83,97 +162,323 @@
   <main>
     <header>
       <div>
-        <h1>Dashboard Ringkasan</h1>
+        <h1>Dashboard Branch</h1>
         <div class="muted">Data diambil dari Google Sheets</div>
       </div>
-      <button id="refreshButton">Muat ulang data</button>
+
+      <button id="refreshButton" type="button">Muat ulang data</button>
     </header>
 
-    <section id="cards"></section>
+    <section class="summary">
+      <div class="summary-card">
+        <span>Jumlah Branch</span>
+        <strong id="branchCount">—</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Total Active Subscribers</span>
+        <strong id="subscriberTotal">—</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Total Engineer</span>
+        <strong id="engineerTotal">—</strong>
+      </div>
+    </section>
+
+    <div class="controls">
+      <select id="provinceFilter">
+        <option value="">Semua Province</option>
+      </select>
+
+      <select id="roFilter">
+        <option value="">Semua RO</option>
+      </select>
+
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="Cari branch atau data lainnya..."
+      >
+    </div>
+
     <p id="status">Memuat data…</p>
+
+    <div class="table-container">
+      <table>
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
   </main>
 
   <script>
-    // Ganti teks di bawah ini dengan URL CSV dari Google Sheets.
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/1fNVV1nv-TvPOsuzbnTnnAZKEdN37DzKYMpz_E7lY0WE/edit?gid=1959687228#gid=1959687228";
+    // Ganti dengan URL CSV dari Google Sheets Anda.
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRshCAJ18IszHmUTABcnupCQzwGspNG_YuaHvUCGWsh8y0vySc3xeO34Z27sivjhBaV7DwpkOFXR1Ef/pub?gid=921583349&single=true&output=csv";
 
-    async function loadDashboard() {
-      const status = document.getElementById("status");
-      const cards = document.getElementById("cards");
+    const statusElement = document.getElementById("status");
+    const tableHead = document.getElementById("tableHead");
+    const tableBody = document.getElementById("tableBody");
+    const provinceFilter = document.getElementById("provinceFilter");
+    const roFilter = document.getElementById("roFilter");
+    const searchInput = document.getElementById("searchInput");
 
-      status.textContent = "Memuat data…";
-      cards.replaceChildren();
+    let headers = [];
+    let records = [];
 
+    // Membaca CSV, termasuk sel yang berisi koma dan tanda kutip.
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let insideQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (char === '"' && insideQuotes && next === '"') {
+          cell += '"';
+          i++;
+        } else if (char === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (char === "," && !insideQuotes) {
+          row.push(cell.trim());
+          cell = "";
+        } else if ((char === "\n" || char === "\r") && !insideQuotes) {
+          if (char === "\r" && next === "\n") i++;
+
+          row.push(cell.trim());
+          rows.push(row);
+          row = [];
+          cell = "";
+        } else {
+          cell += char;
+        }
+      }
+
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell.trim());
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    function normalizeHeader(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function columnIndex(name) {
+      return headers.findIndex(
+        header => normalizeHeader(header) === normalizeHeader(name)
+      );
+    }
+
+    function addOptions(selectElement, values, defaultLabel) {
+      selectElement.replaceChildren();
+
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = defaultLabel;
+      selectElement.appendChild(defaultOption);
+
+      values.forEach(value => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        selectElement.appendChild(option);
+      });
+    }
+
+    function formatNumber(value) {
+      const number = Number(value);
+      return Number.isFinite(number)
+        ? new Intl.NumberFormat("id-ID").format(number)
+        : value;
+    }
+
+    function renderTable() {
+      const provinceIndex = columnIndex("Province");
+      const roIndex = columnIndex("RO");
+
+      const selectedProvince = provinceFilter.value.toLowerCase();
+      const selectedRO = roFilter.value.toLowerCase();
+      const query = searchInput.value.trim().toLowerCase();
+
+      const filteredRecords = records.filter(record => {
+        const province = String(record[provinceIndex] || "").toLowerCase();
+        const ro = String(record[roIndex] || "").toLowerCase();
+        const allValues = record.join(" ").toLowerCase();
+
+        return (!selectedProvince || province === selectedProvince) &&
+          (!selectedRO || ro === selectedRO) &&
+          (!query || allValues.includes(query));
+      });
+
+      tableBody.replaceChildren();
+
+      filteredRecords.forEach(record => {
+        const tr = document.createElement("tr");
+
+        headers.forEach((header, index) => {
+          const td = document.createElement("td");
+          const value = record[index] || "";
+
+          // Format angka agar pemisah ribu tampil sesuai lokal Indonesia.
+          const isNumericColumn = [
+            "No",
+            "Active Subscribers",
+            "NOE",
+            "NOB",
+            "Total Engineer",
+            "Existing",
+            "Requirement"
+          ].some(name => normalizeHeader(name) === normalizeHeader(header));
+
+          td.textContent = isNumericColumn ? formatNumber(value) : value;
+          tr.appendChild(td);
+        });
+
+        tableBody.appendChild(tr);
+      });
+
+      statusElement.textContent =
+        `Menampilkan ${filteredRecords.length} dari ${records.length} baris.`;
+    }
+
+    function updateSummary() {
+      const branchIndex = columnIndex("Branch");
+      const subscribersIndex = columnIndex("Active Subscribers");
+      const engineerIndex = columnIndex("Total Engineer");
+
+      const uniqueBranches = new Set(
+        records
+          .map(record => record[branchIndex])
+          .filter(Boolean)
+      );
+
+      const subscribersTotal = records.reduce(
+        (sum, record) => sum + parseLocalizedNumber(record[subscribersIndex]),
+        0
+      );
+
+      const engineersTotal = records.reduce(
+        (sum, record) => sum + parseLocalizedNumber(record[engineerIndex]),
+        0
+      );
+
+      document.getElementById("branchCount").textContent =
+        formatNumber(uniqueBranches.size);
+
+      document.getElementById("subscriberTotal").textContent =
+        formatNumber(subscribersTotal);
+
+      document.getElementById("engineerTotal").textContent =
+        formatNumber(engineersTotal);
+    }
+
+    // Membaca angka seperti 10.190 sebagai 10190.
+    function parseLocalizedNumber(value) {
+      if (!value) return 0;
+
+      const cleaned = String(value)
+        .replace(/\s/g, "")
+        .replace(/\./g, "")
+        .replace(/,/g, ".");
+
+      const number = Number(cleaned);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    async function loadData() {
       try {
+        if (CSV_URL.includes("TEMPEL_URL")) {
+          throw new Error("URL CSV belum diganti.");
+        }
+
+        statusElement.textContent = "Memuat data…";
+
         const url = new URL(CSV_URL);
         url.searchParams.set("_refresh", Date.now());
 
         const response = await fetch(url);
 
         if (!response.ok) {
-          throw new Error("CSV tidak bisa diambil.");
+          throw new Error(`Gagal mengambil CSV: HTTP ${response.status}`);
         }
 
-        const csv = (await response.text()).replace(/^\uFEFF/, "");
-        const lines = csv.trim().split(/\r?\n/);
+        const csvText = (await response.text()).replace(/^\uFEFF/, "");
+        const rows = parseCSV(csvText);
 
-        if (lines.length < 2) {
-          throw new Error("Data CSV kosong atau formatnya tidak sesuai.");
+        // Cari baris header tabel, walaupun ada judul/baris lain di atasnya.
+        const headerIndex = rows.findIndex(row => {
+          const normalized = row.map(normalizeHeader);
+
+          return normalized.includes("province") &&
+            normalized.includes("ro") &&
+            normalized.includes("branch") &&
+            normalized.includes("activesubscribers");
+        });
+
+        if (headerIndex === -1) {
+          throw new Error(
+            "Header tidak ditemukan. Pastikan kolomnya bernama Province, RO, Branch, dan Active Subscribers."
+          );
         }
 
-        const headers = lines.shift().split(",").map(x => x.trim());
+        headers = rows[headerIndex];
 
-        const records = lines.map(line => {
-          const cells = line.split(",");
-          const record = {};
+        records = rows
+          .slice(headerIndex + 1)
+          .filter(row =>
+            row.some(value => value !== "") &&
+            row.length > 1
+          )
+          .map(row => headers.map((_, index) => row[index] || ""));
 
-          headers.forEach((header, index) => {
-            record[header] = (cells[index] || "").trim();
-          });
+        // Buat header tabel sesuai urutan kolom di Sheet.
+        const headerRow = document.createElement("tr");
 
-          return record;
+        headers.forEach(header => {
+          const th = document.createElement("th");
+          th.textContent = header;
+          headerRow.appendChild(th);
         });
 
-        records.forEach(record => {
-          const card = document.createElement("article");
-          card.className = "card";
+        tableHead.replaceChildren(headerRow);
 
-          const label = document.createElement("p");
-          label.textContent = record.label || record.key || "Data";
+        const provinceIndex = columnIndex("Province");
+        const roIndex = columnIndex("RO");
 
-          const value = document.createElement("strong");
-          const number = Number(record.value);
+        const provinces = [...new Set(
+          records.map(record => record[provinceIndex]).filter(Boolean)
+        )].sort();
 
-          if (record.key === "revenue" && Number.isFinite(number)) {
-            value.textContent = new Intl.NumberFormat("id-ID", {
-              style: "currency",
-              currency: "IDR",
-              maximumFractionDigits: 0
-            }).format(number);
-          } else if (Number.isFinite(number)) {
-            value.textContent = new Intl.NumberFormat("id-ID").format(number);
-          } else {
-            value.textContent = record.value || "—";
-          }
+        const ros = [...new Set(
+          records.map(record => record[roIndex]).filter(Boolean)
+        )].sort();
 
-          card.append(label, value);
-          cards.appendChild(card);
-        });
+        addOptions(provinceFilter, provinces, "Semua Province");
+        addOptions(roFilter, ros, "Semua RO");
 
-        status.textContent =
-          "Data dimuat pada " + new Date().toLocaleString("id-ID");
+        updateSummary();
+        renderTable();
       } catch (error) {
-        status.textContent =
-          "Data belum berhasil dimuat. Periksa URL CSV dan pengaturan publikasi Sheet.";
         console.error(error);
+        statusElement.textContent =
+          "Data gagal dimuat. Periksa URL CSV dan nama header di Google Sheets.";
       }
     }
 
-    document
-      .getElementById("refreshButton")
-      .addEventListener("click", loadDashboard);
+    provinceFilter.addEventListener("change", renderTable);
+    roFilter.addEventListener("change", renderTable);
+    searchInput.addEventListener("input", renderTable);
+    document.getElementById("refreshButton").addEventListener("click", loadData);
 
-    loadDashboard();
+    loadData();
   </script>
 </body>
 </html>
