@@ -3,23 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Branch</title>
+  <title>Dashboard Engineer per Branch</title>
+
+  <!-- Leaflet: library untuk menampilkan peta -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 28px;
-      font-family: Arial, sans-serif;
-      color: #1e293b;
+      padding: 24px;
+      color: #172033;
       background: #f1f5f9;
+      font-family: Arial, sans-serif;
     }
 
     main {
-      max-width: 1600px;
+      max-width: 1500px;
       margin: 0 auto;
     }
 
@@ -28,22 +32,20 @@
       justify-content: space-between;
       align-items: center;
       gap: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     h1 {
       margin: 0 0 6px;
+      font-size: 28px;
     }
 
-    .muted,
-    #status {
+    .subtitle, #status {
       color: #64748b;
       font-size: 14px;
     }
 
-    button,
-    select,
-    input {
+    button, select, input {
       padding: 10px 12px;
       border: 1px solid #cbd5e1;
       border-radius: 8px;
@@ -58,102 +60,94 @@
       cursor: pointer;
     }
 
-    button:hover {
-      background: #1d4ed8;
-    }
+    button:hover { background: #1d4ed8; }
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(3, minmax(150px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 14px;
       margin: 18px 0;
     }
 
-    .summary-card {
-      padding: 18px;
+    .card {
+      padding: 16px 18px;
       border-radius: 12px;
       background: white;
-      box-shadow: 0 4px 16px #0f172a0a;
+      box-shadow: 0 3px 14px #0f172a0a;
     }
 
-    .summary-card span {
+    .card span {
       display: block;
       margin-bottom: 8px;
       color: #64748b;
       font-size: 14px;
     }
 
-    .summary-card strong {
-      font-size: 24px;
-    }
+    .card strong { font-size: 24px; }
 
     .controls {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin: 18px 0 12px;
+      margin: 16px 0 10px;
     }
 
-    select {
-      min-width: 170px;
-    }
+    select { min-width: 160px; }
 
     input {
       flex: 1;
-      min-width: 240px;
+      min-width: 220px;
     }
 
-    .table-container {
-      max-height: 70vh;
-      overflow: auto;
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin: 12px 0;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 13px;
+      height: 13px;
+      border: 1px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px #94a3b8;
+    }
+
+    #map {
+      height: 68vh;
+      min-height: 430px;
       border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      background: white;
-    }
-
-    table {
-      width: 100%;
-      min-width: 1300px;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 10px 12px;
-      border: 1px solid #d1d5db;
-      white-space: nowrap;
-      text-align: left;
-      font-size: 14px;
-    }
-
-    th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
+      border-radius: 12px;
       background: #e2e8f0;
+      z-index: 0;
     }
 
-    tbody tr:hover {
-      background: #f8fafc;
+    .leaflet-popup-content {
+      line-height: 1.55;
+    }
+
+    .popup-title {
+      margin-bottom: 5px;
+      font-size: 15px;
+      font-weight: bold;
     }
 
     @media (max-width: 650px) {
-      body {
-        padding: 18px 12px;
-      }
-
-      header {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .summary {
-        grid-template-columns: 1fr;
-      }
-
-      input {
-        min-width: 100%;
-      }
+      body { padding: 16px 12px; }
+      header { align-items: flex-start; flex-direction: column; }
+      .summary { grid-template-columns: 1fr; }
+      input { min-width: 100%; }
+      #map { height: 62vh; min-height: 380px; }
     }
   </style>
 </head>
@@ -162,27 +156,27 @@
   <main>
     <header>
       <div>
-        <h1>Dashboard Branch</h1>
-        <div class="muted">Data diambil dari Google Sheets</div>
+        <h1>Engineer per Branch</h1>
+        <div class="subtitle">
+          Titik lokasi merupakan perkiraan berdasarkan nama area branch.
+        </div>
       </div>
 
       <button id="refreshButton" type="button">Muat ulang data</button>
     </header>
 
     <section class="summary">
-      <div class="summary-card">
-        <span>Jumlah Branch</span>
+      <div class="card">
+        <span>Branch yang tampil di peta</span>
         <strong id="branchCount">—</strong>
       </div>
-
-      <div class="summary-card">
-        <span>Total Active Subscribers</span>
-        <strong id="subscriberTotal">—</strong>
-      </div>
-
-      <div class="summary-card">
-        <span>Total Engineer</span>
+      <div class="card">
+        <span>Total engineer pada branch terfilter</span>
         <strong id="engineerTotal">—</strong>
+      </div>
+      <div class="card">
+        <span>Branch belum dipetakan</span>
+        <strong id="unmappedCount">—</strong>
       </div>
     </section>
 
@@ -198,56 +192,112 @@
       <input
         id="searchInput"
         type="search"
-        placeholder="Cari branch atau data lainnya..."
+        placeholder="Cari nama branch..."
       >
     </div>
 
-    <p id="status">Memuat data…</p>
-
-    <div class="table-container">
-      <table>
-        <thead id="tableHead"></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
+    <div class="legend">
+      <strong>Jumlah engineer:</strong>
+      <span class="legend-item"><span class="dot" style="background:#22c55e"></span> 0–4</span>
+      <span class="legend-item"><span class="dot" style="background:#f59e0b"></span> 5–9</span>
+      <span class="legend-item"><span class="dot" style="background:#ef4444"></span> 10 atau lebih</span>
+      <span>Semakin besar titik, semakin banyak engineer.</span>
     </div>
+
+    <p id="status">Memuat data…</p>
+    <div id="map"></div>
   </main>
 
-  <script>
-    // Ganti dengan URL CSV dari Google Sheets Anda.
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRshCAJ18IszHmUTABcnupCQzwGspNG_YuaHvUCGWsh8y0vySc3xeO34Z27sivjhBaV7DwpkOFXR1Ef/pub?gid=921583349&single=true&output=csv";
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    const statusElement = document.getElementById("status");
-    const tableHead = document.getElementById("tableHead");
-    const tableBody = document.getElementById("tableBody");
+  <script>
+    // Ganti dengan URL CSV Google Sheets Anda.
+    const CSV_URL = "TEMPEL_URL_CSV_GOOGLE_SHEETS_DI_SINI";
+
+    /*
+      Koordinat perkiraan berdasarkan nama branch yang terlihat
+      pada gambar Anda. Format: "NAMA AREA": [latitude, longitude]
+    */
+    const branchLocations = {
+      "BADUNG DARMSASABA": [-8.590, 115.236],
+      "BADUNG JIMBARAN": [-8.790, 115.174],
+      "BADUNG KUTA": [-8.723, 115.172],
+      "BADUNG NUSA DUA": [-8.800, 115.227],
+      "BADUNG TIBUBENENG": [-8.660, 115.148],
+      "BADUNG UNGASAN": [-8.829, 115.167],
+      "DENPASAR": [-8.650, 115.216],
+      "DENPASAR GATOT SUBROTO": [-8.620, 115.224],
+      "KARANGASEM AMED": [-8.341, 115.665],
+      "KARANGASEM AMLAPURA": [-8.450, 115.610],
+      "BANGLI": [-8.454, 115.354],
+      "DENPASAR KESIMAN": [-8.642, 115.246],
+      "DENPASAR SANUR": [-8.693, 115.263],
+      "GIANYAR GIANYAR": [-8.539, 115.325],
+      "GIANYAR MAS": [-8.565, 115.276],
+      "GIANYAR TEGALALANG": [-8.430, 115.280],
+      "KLUNGKUNG SEMARAPURA": [-8.535, 115.404],
+      "BADUNG MENGWI": [-8.544, 115.173],
+      "JEMBRANA CANDIKUSUMA": [-8.365, 114.600],
+      "JEMBRANA MENDOYO": [-8.330, 114.770],
+      "JEMBRANA NEGARA": [-8.360, 114.620],
+      "JEMBRANA PEKUTATAN": [-8.420, 114.850],
+      "BULELENG KUBUTAMBAHAN": [-8.100, 115.190]
+    };
+
+    const map = L.map("map").setView([-8.45, 115.15], 8);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+
     const provinceFilter = document.getElementById("provinceFilter");
     const roFilter = document.getElementById("roFilter");
     const searchInput = document.getElementById("searchInput");
+    const statusElement = document.getElementById("status");
 
     let headers = [];
     let records = [];
+    let unmappedRecords = [];
 
-    // Membaca CSV, termasuk sel yang berisi koma dan tanda kutip.
+    function normalize(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function findColumn(name) {
+      const wanted = normalize(name);
+      return headers.findIndex(header => normalize(header) === wanted);
+    }
+
+    // Parser CSV untuk menangani tanda kutip dan koma di dalam sel.
     function parseCSV(text) {
       const rows = [];
       let row = [];
       let cell = "";
-      let insideQuotes = false;
+      let quoted = false;
 
       for (let i = 0; i < text.length; i++) {
         const char = text[i];
         const next = text[i + 1];
 
-        if (char === '"' && insideQuotes && next === '"') {
+        if (char === '"' && quoted && next === '"') {
           cell += '"';
           i++;
         } else if (char === '"') {
-          insideQuotes = !insideQuotes;
-        } else if (char === "," && !insideQuotes) {
+          quoted = !quoted;
+        } else if (char === "," && !quoted) {
           row.push(cell.trim());
           cell = "";
-        } else if ((char === "\n" || char === "\r") && !insideQuotes) {
+        } else if ((char === "\n" || char === "\r") && !quoted) {
           if (char === "\r" && next === "\n") i++;
-
           row.push(cell.trim());
           rows.push(row);
           row = [];
@@ -257,7 +307,7 @@
         }
       }
 
-      if (cell.length > 0 || row.length > 0) {
+      if (cell.length || row.length) {
         row.push(cell.trim());
         rows.push(row);
       }
@@ -265,126 +315,12 @@
       return rows;
     }
 
-    function normalizeHeader(value) {
-      return String(value || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-    }
-
-    function columnIndex(name) {
-      return headers.findIndex(
-        header => normalizeHeader(header) === normalizeHeader(name)
-      );
-    }
-
-    function addOptions(selectElement, values, defaultLabel) {
-      selectElement.replaceChildren();
-
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.textContent = defaultLabel;
-      selectElement.appendChild(defaultOption);
-
-      values.forEach(value => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = value;
-        selectElement.appendChild(option);
-      });
-    }
-
-    function formatNumber(value) {
-      const number = Number(value);
-      return Number.isFinite(number)
-        ? new Intl.NumberFormat("id-ID").format(number)
-        : value;
-    }
-
-    function renderTable() {
-      const provinceIndex = columnIndex("Province");
-      const roIndex = columnIndex("RO");
-
-      const selectedProvince = provinceFilter.value.toLowerCase();
-      const selectedRO = roFilter.value.toLowerCase();
-      const query = searchInput.value.trim().toLowerCase();
-
-      const filteredRecords = records.filter(record => {
-        const province = String(record[provinceIndex] || "").toLowerCase();
-        const ro = String(record[roIndex] || "").toLowerCase();
-        const allValues = record.join(" ").toLowerCase();
-
-        return (!selectedProvince || province === selectedProvince) &&
-          (!selectedRO || ro === selectedRO) &&
-          (!query || allValues.includes(query));
-      });
-
-      tableBody.replaceChildren();
-
-      filteredRecords.forEach(record => {
-        const tr = document.createElement("tr");
-
-        headers.forEach((header, index) => {
-          const td = document.createElement("td");
-          const value = record[index] || "";
-
-          // Format angka agar pemisah ribu tampil sesuai lokal Indonesia.
-          const isNumericColumn = [
-            "No",
-            "Active Subscribers",
-            "NOE",
-            "NOB",
-            "Total Engineer",
-            "Existing",
-            "Requirement"
-          ].some(name => normalizeHeader(name) === normalizeHeader(header));
-
-          td.textContent = isNumericColumn ? formatNumber(value) : value;
-          tr.appendChild(td);
-        });
-
-        tableBody.appendChild(tr);
-      });
-
-      statusElement.textContent =
-        `Menampilkan ${filteredRecords.length} dari ${records.length} baris.`;
-    }
-
-    function updateSummary() {
-      const branchIndex = columnIndex("Branch");
-      const subscribersIndex = columnIndex("Active Subscribers");
-      const engineerIndex = columnIndex("Total Engineer");
-
-      const uniqueBranches = new Set(
-        records
-          .map(record => record[branchIndex])
-          .filter(Boolean)
-      );
-
-      const subscribersTotal = records.reduce(
-        (sum, record) => sum + parseLocalizedNumber(record[subscribersIndex]),
-        0
-      );
-
-      const engineersTotal = records.reduce(
-        (sum, record) => sum + parseLocalizedNumber(record[engineerIndex]),
-        0
-      );
-
-      document.getElementById("branchCount").textContent =
-        formatNumber(uniqueBranches.size);
-
-      document.getElementById("subscriberTotal").textContent =
-        formatNumber(subscribersTotal);
-
-      document.getElementById("engineerTotal").textContent =
-        formatNumber(engineersTotal);
-    }
-
-    // Membaca angka seperti 10.190 sebagai 10190.
-    function parseLocalizedNumber(value) {
-      if (!value) return 0;
+    // Membaca format angka Indonesia: 10.190 menjadi 10190.
+    function parseNumber(value) {
+      if (value === undefined || value === null || value === "") return 0;
 
       const cleaned = String(value)
+        .trim()
         .replace(/\s/g, "")
         .replace(/\./g, "")
         .replace(/,/g, ".");
@@ -393,13 +329,153 @@
       return Number.isFinite(number) ? number : 0;
     }
 
+    function formatNumber(value) {
+      return new Intl.NumberFormat("id-ID").format(value);
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      })[char]);
+    }
+
+    function locationForBranch(branch) {
+      const name = normalize(branch);
+
+      // Cocokkan nama branch yang ada di daftar.
+      if (branchLocations[name]) return branchLocations[name];
+
+      // Jika nama pada sheet diawali nama kunci, coba cari kecocokan.
+      const match = Object.keys(branchLocations).find(key =>
+        name === normalize(key) || name.includes(normalize(key))
+      );
+
+      return match ? branchLocations[match] : null;
+    }
+
+    function engineerColor(count) {
+      if (count >= 10) return "#ef4444";
+      if (count >= 5) return "#f59e0b";
+      return "#22c55e";
+    }
+
+    function addFilterOptions(select, values, label) {
+      select.replaceChildren();
+
+      const first = document.createElement("option");
+      first.value = "";
+      first.textContent = label;
+      select.appendChild(first);
+
+      [...new Set(values.filter(Boolean))]
+        .sort()
+        .forEach(value => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+    }
+
+    function renderMap() {
+      markerLayer.clearLayers();
+
+      const provinceIndex = findColumn("Province");
+      const roIndex = findColumn("RO");
+      const branchIndex = findColumn("Branch");
+      const engineerIndex = findColumn("Total Engineer");
+      const subscriberIndex = findColumn("Active Subscribers");
+      const noeIndex = findColumn("NOE");
+      const nobIndex = findColumn("NOB");
+
+      const provinceChoice = provinceFilter.value.toLowerCase();
+      const roChoice = roFilter.value.toLowerCase();
+      const search = searchInput.value.trim().toLowerCase();
+
+      const visibleRecords = records.filter(row => {
+        const province = String(row[provinceIndex] || "").toLowerCase();
+        const ro = String(row[roIndex] || "").toLowerCase();
+        const branch = String(row[branchIndex] || "").toLowerCase();
+
+        return (!provinceChoice || province === provinceChoice) &&
+          (!roChoice || ro === roChoice) &&
+          (!search || branch.includes(search));
+      });
+
+      let plottedCount = 0;
+      let engineerSum = 0;
+      let visibleUnmapped = 0;
+
+      visibleRecords.forEach(row => {
+        const branch = row[branchIndex] || "(Nama branch kosong)";
+        const coords = locationForBranch(branch);
+
+        if (!coords) {
+          visibleUnmapped++;
+          return;
+        }
+
+        const engineerCount = parseNumber(row[engineerIndex]);
+        engineerSum += engineerCount;
+        plottedCount++;
+
+        const radius = Math.min(18, 7 + engineerCount * 0.6);
+
+        const marker = L.circleMarker(coords, {
+          radius,
+          color: "#ffffff",
+          weight: 2,
+          fillColor: engineerColor(engineerCount),
+          fillOpacity: 0.85
+        });
+
+        const detail = `
+          <div class="popup-title">${escapeHTML(branch)}</div>
+          <div><b>Province:</b> ${escapeHTML(row[provinceIndex])}</div>
+          <div><b>RO:</b> ${escapeHTML(row[roIndex])}</div>
+          <div><b>Active Subscribers:</b> ${escapeHTML(row[subscriberIndex])}</div>
+          <div><b>NOE:</b> ${escapeHTML(row[noeIndex])}</div>
+          <div><b>NOB:</b> ${escapeHTML(row[nobIndex])}</div>
+          <div><b>Total Engineer:</b> ${formatNumber(engineerCount)}</div>
+          <div><small>Lokasi perkiraan berdasarkan nama area</small></div>
+        `;
+
+        marker.bindTooltip(detail, {
+          direction: "top",
+          sticky: true,
+          opacity: 0.97
+        });
+
+        marker.bindPopup(detail);
+        marker.addTo(markerLayer);
+      });
+
+      document.getElementById("branchCount").textContent =
+        formatNumber(plottedCount);
+
+      document.getElementById("engineerTotal").textContent =
+        formatNumber(engineerSum);
+
+      document.getElementById("unmappedCount").textContent =
+        formatNumber(visibleUnmapped);
+
+      statusElement.textContent =
+        visibleUnmapped > 0
+          ? `${plottedCount} titik tampil. ${visibleUnmapped} branch belum ada di daftar koordinat.`
+          : `${plottedCount} titik tampil di peta.`;
+    }
+
     async function loadData() {
       try {
         if (CSV_URL.includes("TEMPEL_URL")) {
-          throw new Error("URL CSV belum diganti.");
+          throw new Error("URL CSV belum dimasukkan.");
         }
 
-        statusElement.textContent = "Memuat data…";
+        statusElement.textContent = "Memuat data Google Sheets…";
 
         const url = new URL(CSV_URL);
         url.searchParams.set("_refresh", Date.now());
@@ -407,75 +483,59 @@
         const response = await fetch(url);
 
         if (!response.ok) {
-          throw new Error(`Gagal mengambil CSV: HTTP ${response.status}`);
+          throw new Error(`CSV tidak berhasil dibaca: HTTP ${response.status}`);
         }
 
-        const csvText = (await response.text()).replace(/^\uFEFF/, "");
-        const rows = parseCSV(csvText);
+        const text = (await response.text()).replace(/^\uFEFF/, "");
+        const rows = parseCSV(text);
 
-        // Cari baris header tabel, walaupun ada judul/baris lain di atasnya.
-        const headerIndex = rows.findIndex(row => {
-          const normalized = row.map(normalizeHeader);
+        const headerRowIndex = rows.findIndex(row => {
+          const names = row.map(normalize);
 
-          return normalized.includes("province") &&
-            normalized.includes("ro") &&
-            normalized.includes("branch") &&
-            normalized.includes("activesubscribers");
+          return names.includes("PROVINCE") &&
+            names.includes("RO") &&
+            names.includes("BRANCH") &&
+            names.includes("TOTAL ENGINEER");
         });
 
-        if (headerIndex === -1) {
+        if (headerRowIndex === -1) {
           throw new Error(
-            "Header tidak ditemukan. Pastikan kolomnya bernama Province, RO, Branch, dan Active Subscribers."
+            "Header Province, RO, Branch, atau Total Engineer tidak ditemukan."
           );
         }
 
-        headers = rows[headerIndex];
+        headers = rows[headerRowIndex];
 
-        records = rows
-          .slice(headerIndex + 1)
-          .filter(row =>
-            row.some(value => value !== "") &&
-            row.length > 1
-          )
-          .map(row => headers.map((_, index) => row[index] || ""));
+        records = rows.slice(headerRowIndex + 1).filter(row =>
+          row.some(value => value !== "")
+        );
 
-        // Buat header tabel sesuai urutan kolom di Sheet.
-        const headerRow = document.createElement("tr");
+        const provinceIndex = findColumn("Province");
+        const roIndex = findColumn("RO");
 
-        headers.forEach(header => {
-          const th = document.createElement("th");
-          th.textContent = header;
-          headerRow.appendChild(th);
-        });
+        addFilterOptions(
+          provinceFilter,
+          records.map(row => row[provinceIndex]),
+          "Semua Province"
+        );
 
-        tableHead.replaceChildren(headerRow);
+        addFilterOptions(
+          roFilter,
+          records.map(row => row[roIndex]),
+          "Semua RO"
+        );
 
-        const provinceIndex = columnIndex("Province");
-        const roIndex = columnIndex("RO");
-
-        const provinces = [...new Set(
-          records.map(record => record[provinceIndex]).filter(Boolean)
-        )].sort();
-
-        const ros = [...new Set(
-          records.map(record => record[roIndex]).filter(Boolean)
-        )].sort();
-
-        addOptions(provinceFilter, provinces, "Semua Province");
-        addOptions(roFilter, ros, "Semua RO");
-
-        updateSummary();
-        renderTable();
+        renderMap();
       } catch (error) {
         console.error(error);
         statusElement.textContent =
-          "Data gagal dimuat. Periksa URL CSV dan nama header di Google Sheets.";
+          "Data gagal dimuat. Periksa URL CSV dan nama header Google Sheets.";
       }
     }
 
-    provinceFilter.addEventListener("change", renderTable);
-    roFilter.addEventListener("change", renderTable);
-    searchInput.addEventListener("input", renderTable);
+    provinceFilter.addEventListener("change", renderMap);
+    roFilter.addEventListener("change", renderMap);
+    searchInput.addEventListener("input", renderMap);
     document.getElementById("refreshButton").addEventListener("click", loadData);
 
     loadData();
